@@ -37,7 +37,7 @@ if api_key:
 
         with st.chat_message("assistant"):
             response = client.messages.create(
-                "claude-3-5-sonnet-latest",
+                model="claude-3-5-sonnet-latest",
                 max_tokens=300,
                 system=system_prompt,
                 messages=[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
