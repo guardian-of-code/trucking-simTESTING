@@ -4,8 +4,20 @@ import anthropic
 st.set_page_config(page_title="Simulador Trucking Insurance", page_icon="🚛")
 st.title("🚛 Entrenamiento de Ventas: Manejo de Objeciones")
 
-# Configurar API Key
-api_key = st.sidebar.text_input("Pega tu API Key de Anthropic aquí:", type="password")
+# Sidebar: Configuración
+st.sidebar.header("⚙️ Configuración")
+api_key_input = st.sidebar.text_input("Pega tu API Key de Anthropic aquí:", type="password")
+api_key = api_key_input.strip() if api_key_input else ""
+
+model_option = st.sidebar.selectbox(
+    "Selecciona el modelo de Claude:",
+    [
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-haiku-20241022",
+        "claude-3-haiku-20240307",
+        "claude-3-7-sonnet-20250219"
+    ]
+)
 
 if api_key:
     client = anthropic.Anthropic(api_key=api_key)
@@ -27,7 +39,6 @@ if api_key:
         with st.chat_message("user"):
             st.write(user_input)
 
-        # Configuración de personalidad de Claude
         system_prompt = (
             "Eres Rigoberto, un camionero/dueño-operador difícil e impaciente. "
             "Rechaza las propuestas por precio, enganche o papeleo. "
@@ -36,14 +47,21 @@ if api_key:
         )
 
         with st.chat_message("assistant"):
-            response = client.messages.create(
-                model="claude-3-haiku-20240307",
-                max_tokens=300,
-                system=system_prompt,
-                messages=[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
-            )
-            reply = response.content[0].text
-            st.write(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
+            try:
+                response = client.messages.create(
+                    model=model_option,
+                    max_tokens=300,
+                    system=system_prompt,
+                    messages=[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
+                )
+                reply = response.content[0].text
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+            except anthropic.NotFoundError:
+                st.error(f"El modelo '{model_option}' no está activo para tu API Key. Selecciona otro modelo en la barra lateral izquierda.")
+            except anthropic.AuthenticationError:
+                st.error("La API Key ingresada no es válida. Verifica haber copiado la clave completa que empieza por 'sk-ant-'.")
+            except Exception as e:
+                st.error(f"Ocurrió un detalle de conexión: {str(e)}")
 else:
     st.warning("Ingresa tu API Key en el menú de la izquierda para comenzar el entrenamiento.")
